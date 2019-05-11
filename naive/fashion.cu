@@ -1,11 +1,24 @@
 #include "fashion.h"
 
-const char* PATH_TRAIN_DATA = "../data/train-images-idx3-ubyte";
-const char* PATH_TRAIN_LABEL = "../data/train-labels-idx1-ubyte";
-const char* PATH_TEST_DATA = "../data/t10k-images-idx3-ubyte";
-const char* PATH_TEST_LABEL = "../data/t10k-labels-idx1-ubyte";
-
 int main() {
-    printf("CUDA is working");
-    return 0;
+  /*
+   * Load data
+   */
+  // Features
+  host_vector<host_vector<float> > x_train(
+      NUM_TRAIN / MINIBATCH,
+      host_vector<float>(RAW_PIXELS_PER_IMG_PADDING * MINIBATCH, 0));
+  host_vector<host_vector<float> > x_test(
+      NUM_TEST / MINIBATCH,
+      host_vector<float>(RAW_PIXELS_PER_IMG_PADDING * MINIBATCH, 0));
+  // Labels
+  host_vector<int> y_train(NUM_TRAIN, 0);
+  host_vector<int> y_test(NUM_TEST, 0);
+  // Read data from file
+  read_data(PATH_TRAIN_DATA, x_train);
+  read_label(PATH_TRAIN_LABEL, y_train);
+  read_data(PATH_TEST_DATA, x_test);
+  read_label(PATH_TEST_LABEL, y_test);
+
+  return 0;
 }
