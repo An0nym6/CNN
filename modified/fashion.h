@@ -168,50 +168,41 @@ public:
   int OutputT_height;
 };
 
-class Convolution { // M*C*H*W
+// convolution.cu
+class Convolution {
 public:
-  void init(int minib, int X_h, int X_w, int W_w_h, int W_ch);
+  void init(int minibatch, int in_img_h, int in_img_w, int w_w_h, int w_ch);
   void forward_gpu();
   void backward_gpu();
 
-  host_vector<float> X_c; // when back, dE_dX
-  host_vector<float> W_c;
-  host_vector<float> b_c;
-  host_vector<float> Wgrad_c;
-  host_vector<float> Output_c;
-  host_vector<float> bgrad_c;
-  host_vector<float> Unroll_X_c;
-  device_vector<float> X; // when back, dE_dX
-  device_vector<float> W;
-  device_vector<float> WT;
+  device_vector<float> x;
+  device_vector<float> w;
+  device_vector<float> w_t;
   device_vector<float> b;
-  device_vector<float> Wgrad;
-  device_vector<float> WgradTmp;
-  device_vector<float> Output; // when back, dE_dY
+  device_vector<float> w_grad;
+  device_vector<float> w_grad_tmp;
+  device_vector<float> output;
   device_vector<float> bgrad;
-  device_vector<float> Unroll_X;
-  device_vector<float> Unroll_XT;
+  device_vector<float> unroll_x;
+  device_vector<float> unroll_x_t;
 
-  int W_width_height;
-  int W_channel;
-  int X_width;
-  int X_height;
-  int Unroll_X_width;
-  int Unroll_X_height;
-  int input_image_width;
-  int input_image_height;
+  int w_width_height;
+  int w_ch;
+  int unroll_x_width;
+  int unroll_x_height;
+  int in_img_width;
+  int in_img_height;
   int minibatch;
-  int Outputimage_width;
-  int Outputimage_height;
-  int Outputimage_channel;
-  int Output_width;
-  int Output_height;
+  int out_img_width;
+  int out_img_height;
+  int out_img_ch;
+  int out_width;
+  int out_height;
 };
-
-__global__ void conv_layer_forward_gpu(float *X, float *W, float *Y, int H_in,
-                                       int W_in, int W_out, int K, int M);
-__global__ void unroll_kernel(int H_in, int W_in, int K, float *X,
-                              float *X_unroll);
+__global__ void conv_layer_forward_gpu(float *x, float *w, float *y, int h_in,
+                                       int w_in, int w_out, int k, int m);
+__global__ void unroll_kernel(int h_in, int w_in, int k, float *x,
+                              float *x_unroll);
 
 class Pool { // M*C*H*W
 public:
