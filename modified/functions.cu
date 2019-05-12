@@ -339,7 +339,6 @@ __global__ void transposeMatrix_h(float *odata, const float *idata,
 
   if (y < height_in && x < width_in)
     odata[(x)*height_in + y] = idata[(y)*width_in + x];
-  __syncthreads();
 }
 
 __global__ void grad_descent(float *odata, const float *idata, int size) {

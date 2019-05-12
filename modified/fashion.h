@@ -13,6 +13,7 @@
 // CUDA Thrust
 #include <thrust/copy.h>
 #include <thrust/device_vector.h>
+#include <thrust/gather.h>
 #include <thrust/generate.h>
 #include <thrust/host_vector.h>
 #include <thrust/sort.h>
