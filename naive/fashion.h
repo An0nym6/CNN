@@ -34,10 +34,10 @@ using namespace thrust;
 #define LABEL_ONE 1
 #define LABEL_ZERO 0
 #define LAMDA (3e-1)
-#define LEARNIG_RATE 2e-4
+#define LEARNIG_RATE 1e-4
 #define MAXBYTE 255
 #define MNIST_SCALE_FACTOR 0.00390625 // 0.00390625 = 1 / 255
-#define MINIBATCH 1000
+#define MINIBATCH 2
 #define NUM_TEST 10000
 #define NUM_TRAIN 60000
 #define TILE_WIDTH 32
@@ -315,7 +315,7 @@ public:
 
   Convolution conv1;
   Pool pool1;
-  FullyConnect fc1, fc2, fc3;
+  FullyConnect fc1, fc2, fc3, fc4;
   Softmax sm1;
   int correct_num;
 };
