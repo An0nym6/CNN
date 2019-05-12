@@ -23,6 +23,7 @@ void Convolution::init(int minibatch, int in_img_h, int in_img_w, int w_w_h,
                                    // channels * image size
   this->unroll_x_width = out_img_width * out_img_height;
   this->unroll_x_height = w_width_height * w_width_height;
+  // Use resize to define vector sizes
   this->x.resize(minibatch * in_img_height * in_img_width, 0);
   this->unroll_x.resize(
       w_width_height * w_width_height * out_img_width * out_img_height, 0);
@@ -30,6 +31,7 @@ void Convolution::init(int minibatch, int in_img_h, int in_img_w, int w_w_h,
       out_img_width * out_img_height * w_width_height * w_width_height, 0);
   this->w.resize(out_img_ch * w_width_height * w_width_height, 0.5);
   this->w_t.resize(w_width_height * w_width_height * out_img_ch, 0.5);
+  // Initialize weights
   for (int i = 0; i < w_ch * w_width_height * w_width_height; i++) {
     w[i] = distribution(generator);
   }
@@ -73,10 +75,8 @@ void Convolution::backward_gpu() {
   float *unroll_x_t_pointer = thrust::raw_pointer_cast(unroll_x_t.data());
   float *w_grad_tmp_pointer = thrust::raw_pointer_cast(w_grad_tmp.data());
 
+  // Loop through each example inside one batch
   for (int i = 0; i < minibatch; i++) {
-    // conv w_grad
-    // im2col
-
     unroll_kernel<<<num_blocks, 1024>>>(in_img_height, in_img_width,
                                         w_width_height, x_pointer,
                                         unroll_x_pointer);
@@ -88,15 +88,15 @@ void Convolution::backward_gpu() {
         out_img_height * out_img_width, unroll_x_height, out_img_ch,
         unroll_x_height);
 
-    // sum w_grad
+    // Sum w_grad
     thrust::transform(w_grad.begin(), w_grad.end(), w_grad_tmp.begin(),
                       w_grad.begin(), thrust::plus<float>());
-
+    // Move to next example
     out_pointer = out_pointer + (out_img_ch * out_img_height * out_img_width);
     x_pointer = x_pointer + (in_img_height * in_img_width);
   }
 
-  // divide by MINIBATCH
+  // Divide by minibatch
   thrust::transform(w_grad.begin(), w_grad.end(), w_grad.begin(), div_h());
 
   // Gradient descent
@@ -132,17 +132,15 @@ __global__ void conv_layer_forward_gpu(float *x, float *w, float *y, int h_in,
 
 __global__ void unroll_kernel(int h_in, int w_in, int k, float *x,
                               float *x_unroll) {
-  int s, h_out_, w_out_, h_unroll, w_unroll_, h_base, p, q;
-  int t = blockIdx.x * 1024 + threadIdx.x;
-  int h_out = h_in - k + 1;
-  int w_out = w_in - k + 1;
-  int w_unroll = h_out * w_out;
+  int w_out_, h_out_, h_unroll, w_unroll_, p, q;
+  int t = blockIdx.x * 1024 + threadIdx.x; // Index of this thread
+  int w_out = w_in - k + 1;                // Output image size
+  int w_unroll = w_out * w_out;            // Unroll limit
 
   if (t < w_unroll) {
-    s = t % w_unroll;                    // output height * output width
-    h_out_ = s / w_out;                  // output height
-    w_out_ = s % w_out;                  // output width
-    w_unroll_ = h_out_ * w_out + w_out_; // in conv1, max 28*28(s)
+    h_out_ = t / w_out;                  // Output height
+    w_out_ = t % w_out;                  // Output width
+    w_unroll_ = h_out_ * w_out + w_out_; // The index of output pixel in image
     for (p = 0; p < k; p++)
       for (q = 0; q < k; q++) {
         h_unroll = p * k + q;
