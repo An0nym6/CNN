@@ -201,23 +201,8 @@ public:
 class Convolution { // M*C*H*W
 public:
   void init(int minib, int X_h, int X_w, int X_ch, int W_w_h, int W_ch);
-  void forward_CPU();
-  void forward_GPU_gemm();
   void forward_GPU_naive();
-  void forward_GPU_tiled();
   void backward_GPU_gemm();
-  void forward_cpu_test(host_vector<float> &input, int test_number);
-  void forward_gpu_test(device_vector<float> &input, int test_number);
-  void backward_col2im_gpu_test(int test_number);
-  void backward();
-  void backward_GPU_naive();
-
-  void convLayer_forward(int N, float *X, int C, int H_in, int W_in, float *W,
-                         int K, float *Y, int M);
-  void convLayer_backward_xgrad(int N, int M, int C, int H_in, int W_in, int K,
-                                float *dE_dY, float *W, float *dE_dX);
-  void convLayer_backward_wgrad(int N, int M, int C, int H_in, int W_in, int K,
-                                float *dE_dY, float *X, float *dE_dW);
 
   host_vector<float> X_c; // when back, dE_dX
   host_vector<float> W_c;
@@ -257,15 +242,7 @@ public:
 __global__ void convLayer_forward_GPU_naive(float *X, float *W, float *Y, int C,
                                             int H_in, int W_in, int W_out,
                                             int K, int M);
-__global__ void convLayer_forward_GPU_tiled(float *X, float *W, float *Y, int C,
-                                            int H_in, int W_in, int W_out,
-                                            int K, int M);
-__global__ void convLayer_backward_GPU_naive(float *X, float *W, float *Y,
-                                             int C, int H_in, int W_in,
-                                             int W_out, int K, int M);
 __global__ void unroll_Kernel(int C, int H_in, int W_in, int K, float *X,
-                              float *X_unroll);
-__global__ void col2im_Kernel(int C, int H_in, int W_in, int K, float *X,
                               float *X_unroll);
 
 class Pool { // M*C*H*W
