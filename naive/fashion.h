@@ -46,21 +46,8 @@ using namespace thrust;
 #define RAW_PIXELS_PER_IMG 784 // 28 x 28, single-channel image
 #define RAW_PIXELS_PER_IMG_PADDING 1024
 
-// Methods in function.cu
-void clear();
-
 /***** Function declarations ***************************/
-void printMNIST(host_vector<float> &data, int after_minib);
-void printMNIST_num(host_vector<float> &data, int label, int num);
-void printMNIST_HW_row_col(device_vector<float> &data_tmp, int height,
-                           int width, int row_start_index, int col_start_index,
-                           int row_num, int col_num, int row_interval,
-                           int col_interval, char *str);
-void printMNIST_HW_avg_value(device_vector<float> &data_tmp, char *str);
-void printMNIST_HW_avg_value(host_vector<float> &data, char *str);
 void read_data(const char *datapath, host_vector<host_vector<float>> &data);
-void read_data_no_padding(const char *datapath,
-                          host_vector<host_vector<float>> &data);
 void read_label(const char *labelPath, host_vector<int> &label);
 void flatten(host_vector<host_vector<float>> &input,
              host_vector<float> &output);
@@ -76,10 +63,8 @@ void reduceTofirstindex(float *input_pointer, int H_in, int W_in);
 // option 2 -> backward
 void relu_h_gpu_test(host_vector<float> &input, device_vector<float> &comp,
                      int size_in, int test_number, int option);
-void sigmoid(device_vector<float> &input, int size_in);
 // size_in -> entire width of
 // vector(MINIBATCH*Outputimage_channel*Outputimage_height*Outputimage_width)
-void backward_sigmoid(device_vector<float> &input, int size_in);
 void forward_bias_per_channel(device_vector<float> &input,
                               device_vector<float> &bias, int N, int ch_in,
                               int h_in, int w_in);
@@ -93,9 +78,6 @@ void forward_bias_gpu_test(host_vector<float> &input,
                            device_vector<float> &bias,
                            device_vector<float> &comp, int N, int ch_in,
                            int h_in, int w_in, int test_number);
-void forward_sigmoid_gpu_test(host_vector<float> &input,
-                              device_vector<float> &comp, int size_in,
-                              int test_number);
 void transposeMatrix(device_vector<float> &XT, device_vector<float> &X,
                      int X_height, int X_width);
 void transposeMatrix(float *XT_pointer, float *X_pointer, int input_height,
@@ -103,16 +85,8 @@ void transposeMatrix(float *XT_pointer, float *X_pointer, int input_height,
 void transposeMatrix_gpu_test(host_vector<float> &Output_c,
                               host_vector<float> &input_c, int height_in,
                               int width_in, int test_number);
-// size_in -> entire width of
-// vector(MINIBATCH*Outputimage_channel*Outputimage_height*Outputimage_width)
-void div_by_constant(device_vector<float> &input, int n, int size_in);
-// blocknumber -> Input_width/1024
-__global__ void div_by_constant(float *X, int n, int size_in);
 __global__ void forward_bias(float *X, float *b, int N, int ch_in, int h_in,
                              int w_in);
-__global__ void sigmoid(float *X, int size_in);
-// blocknumber -> size_in/1024
-__global__ void backward_sigmoid(float *X, int size_in);
 // bx = output_WIDTH, by = output_HEIGH
 __global__ void gemm_h(float *Md, float *Nd, float *Pd, int M_height_in,
                        int M_width_N_height_in, int N_width_in, int height_out,
@@ -125,8 +99,6 @@ __global__ void transposeMatrix_h(float *odata, const float *idata,
                                   int height_in, int width_in);
 // bx*tx = idata_width*idata*height
 __global__ void grad_descent(float *odata, const float *idata, int size);
-// blocknumber -> size_in/1024
-__global__ void init_zero_vector(float *X, int size_in);
 // blocknumber -> size_in/1024
 __global__ void relu_h(float *X, float *Y, int size_in);
 // blocknumber -> size_in/1024
