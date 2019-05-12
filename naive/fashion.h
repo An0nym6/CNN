@@ -30,11 +30,11 @@ using namespace thrust;
 #define PATH_TEST_DATA "../data/t10k-images-idx3-ubyte"
 #define PATH_TEST_LABEL "../data/t10k-labels-idx1-ubyte"
 // Tunables
-#define CONV_KERNEL_SIZE 13
+#define CONV_KERNEL_SIZE 5
 #define LABEL_ONE 1
 #define LABEL_ZERO 0
 #define LAMDA (3e-1)
-#define LEARNIG_RATE 1e-4
+#define LEARNIG_RATE 1e-5
 #define MAXBYTE 255
 #define MNIST_SCALE_FACTOR 0.00390625 // 0.00390625 = 1 / 255
 #define MINIBATCH 2

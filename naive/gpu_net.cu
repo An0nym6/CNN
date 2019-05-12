@@ -9,12 +9,12 @@ GPU_Net::GPU_Net() {
   // fc3 Input = 400 Output = 200
   // fc3 Input = 200 Output = 10
 
-  conv1.init(MINIBATCH, 32, 32, 1, 13, 8);
-  pool1.init(MINIBATCH, 20, 20, 8, 2);
-  fc1.init(MINIBATCH, 10 * 10 * 8, 800);
-  fc2.init(MINIBATCH, 800, 400);
-  fc3.init(MINIBATCH, 400, 200);
-  fc4.init(MINIBATCH, 200, 10);
+conv1.init(MINIBATCH, 32, 32, 1, 5, 8);
+pool1.init(MINIBATCH, 28, 28, 8, 2);
+fc1.init(MINIBATCH, 14*14*8, 1600);
+fc2.init(MINIBATCH, 1600, 800);
+fc3.init(MINIBATCH, 800, 200);
+fc4.init(MINIBATCH, 200, 10);
   sm1.delta_c.resize(MINIBATCH * 10, 0);
   correct_num = 0;
 }
