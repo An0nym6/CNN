@@ -9,7 +9,7 @@ GPU_Net::GPU_Net() {
   // fc3 Input = 400 Output = 200
   // fc3 Input = 200 Output = 10
 
-  conv1.init(MINIBATCH, 32, 32, 1, 5, 8);
+  conv1.init(MINIBATCH, 32, 32, 5, 8);
   pool1.init(MINIBATCH, 28, 28, 8, 2);
   fc1.init(MINIBATCH, 14 * 14 * 8, 1600);
   fc2.init(MINIBATCH, 1600, 800);
@@ -42,7 +42,7 @@ void GPU_Net::train(host_vector<host_vector<float>> &x_train,
       clock_gettime(CLOCK_REALTIME, &start);
       // Convolution layer forward propagation
       conv1.X = x_train[minibatch_index];
-      conv1.forward_GPU_naive();
+      conv1.forward_gpu();
       // Pooling layer forward propagation
       pool1.forward_GPU_naive(conv1.Output);
       forward_bias_per_channel(
@@ -94,7 +94,7 @@ void GPU_Net::train(host_vector<host_vector<float>> &x_train,
       pool1.backward_GPU(fc1.X);
       // Convolution layer backward propagation
       conv1.Output = pool1.X;
-      conv1.backward_GPU_gemm();
+      conv1.backward_gpu();
 
       // Calculate output variables
       clock_gettime(CLOCK_REALTIME, &finish);
@@ -133,7 +133,7 @@ void GPU_Net::test(host_vector<host_vector<float>> &Xtest,
     clock_gettime(CLOCK_REALTIME, &start);
     // Convolution layer forward propagation
     conv1.X = Xtest[minibatch_index];
-    conv1.forward_GPU_naive();
+    conv1.forward_gpu();
     // Pooling layer forward propagation
     pool1.forward_GPU_naive(conv1.Output);
     forward_bias_per_channel(pool1.Output, pool1.b, MINIBATCH,

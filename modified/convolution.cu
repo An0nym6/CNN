@@ -1,48 +1,41 @@
 #include "fashion.h"
 
 // Convolution layer initialization
-// General structure remain unchanged
-void Convolution::init(int minib, int Inputimage_h, int Inputimage_w,
-                       int Inputimage_ch, int W_w_h, int W_ch) {
+void Convolution::init(int minibatch, int input_image_h, int input_image_w,
+                       int W_w_h, int W_ch) {
+  // Define random generator for initializing weights
   std::default_random_engine generator;
   std::normal_distribution<float> distribution(0, 0.1);
+  // Initialize the member variables
   this->W_width_height = W_w_h;
   this->W_channel = W_ch;
-  this->X_width = Inputimage_ch * Inputimage_h * Inputimage_w;
-  this->X_height = minib;
-  this->Inputimage_width = Inputimage_w;
-  this->Inputimage_height = Inputimage_h;
-  this->Inputimage_channel = Inputimage_ch;
-  this->minibatch = minib;
-  this->Outputimage_width = (Inputimage_width - W_width_height + 1);
-  this->Outputimage_height = (Inputimage_height - W_width_height + 1);
-  this->Outputimage_channel = W_channel / Inputimage_channel;
-  this->Output_height = minib;
+  this->X_width = input_image_h * input_image_w;
+  this->X_height = minibatch;
+  this->input_image_width = input_image_w;
+  this->input_image_height = input_image_h;
+  this->minibatch = minibatch;
+  this->Outputimage_width = (input_image_width - W_width_height + 1);
+  this->Outputimage_height = (input_image_height - W_width_height + 1);
+  this->Outputimage_channel = W_channel;
+  this->Output_height = minibatch;
   this->Output_width =
       Outputimage_channel * Outputimage_height * Outputimage_width;
   this->Unroll_X_width = Outputimage_width * Outputimage_height;
-  this->Unroll_X_height = Inputimage_channel * W_width_height * W_width_height;
-  this->X.resize(
-      minibatch * Inputimage_channel * Inputimage_height * Inputimage_width, 0);
-  this->X_c.resize(
-      minibatch * Inputimage_channel * Inputimage_height * Inputimage_width, 0);
-  this->Unroll_X.resize(Inputimage_channel * W_width_height * W_width_height *
-                            Outputimage_width * Outputimage_height,
+  this->Unroll_X_height = W_width_height * W_width_height;
+  this->X.resize(minibatch * input_image_height * input_image_width, 0);
+  this->X_c.resize(minibatch * input_image_height * input_image_width, 0);
+  this->Unroll_X.resize(W_width_height * W_width_height * Outputimage_width *
+                            Outputimage_height,
                         0);
   this->Unroll_XT.resize(Outputimage_width * Outputimage_height *
-                             Inputimage_channel * W_width_height *
-                             W_width_height,
+                             W_width_height * W_width_height,
                          0);
-  this->Unroll_X_c.resize(Inputimage_channel * W_width_height * W_width_height *
-                              Outputimage_width * Outputimage_height,
+  this->Unroll_X_c.resize(W_width_height * W_width_height * Outputimage_width *
+                              Outputimage_height,
                           0);
   this->W_c.resize(W_channel * W_width_height * W_width_height, 0.5);
-  this->W.resize(Outputimage_channel * Inputimage_channel * W_width_height *
-                     W_width_height,
-                 0.5);
-  this->WT.resize(Inputimage_channel * W_width_height * W_width_height *
-                      Outputimage_channel,
-                  0.5);
+  this->W.resize(Outputimage_channel * W_width_height * W_width_height, 0.5);
+  this->WT.resize(W_width_height * W_width_height * Outputimage_channel, 0.5);
   for (int i = 0; i < W_channel * W_width_height * W_width_height; i++) {
     W_c[i] = distribution(generator);
   }
@@ -55,18 +48,14 @@ void Convolution::init(int minib, int Inputimage_h, int Inputimage_w,
   this->Output.resize(minibatch * Outputimage_channel * Outputimage_width *
                           Outputimage_height,
                       0);
-  this->Wgrad_c.resize(Outputimage_channel * Inputimage_channel *
-                           W_width_height * W_width_height,
+  this->Wgrad_c.resize(Outputimage_channel * W_width_height * W_width_height,
                        0);
-  this->Wgrad.resize(Outputimage_channel * Inputimage_channel * W_width_height *
-                         W_width_height,
-                     0);
-  this->WgradTmp.resize(Outputimage_channel * Inputimage_channel *
-                            W_width_height * W_width_height,
+  this->Wgrad.resize(Outputimage_channel * W_width_height * W_width_height, 0);
+  this->WgradTmp.resize(Outputimage_channel * W_width_height * W_width_height,
                         0);
 }
 
-void Convolution::forward_GPU_naive() {
+void Convolution::forward_gpu() {
   dim3 threadsPerBlock(TILE_WIDTH, TILE_WIDTH);
   int bz = ceil((float)Outputimage_width / TILE_WIDTH) *
            ceil((float)Outputimage_height / TILE_WIDTH);
@@ -77,13 +66,13 @@ void Convolution::forward_GPU_naive() {
   float *input_pointer = thrust::raw_pointer_cast(X.data());
   float *W_pointer = thrust::raw_pointer_cast(W.data());
   float *Output_pointer = thrust::raw_pointer_cast(Output.data());
-  convLayer_forward_GPU_naive<<<numBlocks, threadsPerBlock>>>(
-      input_pointer, W_pointer, Output_pointer, Inputimage_channel,
-      Inputimage_height, Inputimage_width, Outputimage_width, W_width_height,
+  conv_layer_forward_gpu<<<numBlocks, threadsPerBlock>>>(
+      input_pointer, W_pointer, Output_pointer, input_image_height,
+      input_image_width, Outputimage_width, W_width_height,
       Outputimage_channel);
 }
 
-void Convolution::backward_GPU_gemm() {
+void Convolution::backward_gpu() {
   float *Output_pointer = thrust::raw_pointer_cast(Output.data());
   float *X_pointer = thrust::raw_pointer_cast(X.data());
   float *Wgrad_pointer = thrust::raw_pointer_cast(Wgrad.data());
@@ -103,16 +92,16 @@ void Convolution::backward_GPU_gemm() {
   dim3 numBlocks_back_dE_dX(
       ceil((float)Unroll_X_width / TILE_WIDTH),
       ceil((float)Unroll_X_height / TILE_WIDTH)); // bx = O_WIDTH, by = O_HEIGH
-  int num_threads = Inputimage_channel * Outputimage_height * Outputimage_width;
+  int num_threads = Outputimage_height * Outputimage_width;
   int num_blocks = ceil((float)num_threads / 1024);
 
   for (int i = 0; i < minibatch; i++) {
     // conv Wgrad
     // im2col
 
-    unroll_Kernel<<<num_blocks, 1024>>>(Inputimage_channel, Inputimage_height,
-                                        Inputimage_width, W_width_height,
-                                        X_pointer, Unroll_X_pointer);
+    unroll_kernel<<<num_blocks, 1024>>>(input_image_height, input_image_width,
+                                        W_width_height, X_pointer,
+                                        Unroll_X_pointer);
 
     // dL/dY * Unroll_X^t  = dY/dW
     transposeMatrix(Unroll_XT, Unroll_X, Unroll_X_height, Unroll_X_width);
@@ -127,8 +116,7 @@ void Convolution::backward_GPU_gemm() {
 
     Output_pointer = Output_pointer + (Outputimage_channel *
                                        Outputimage_height * Outputimage_width);
-    X_pointer =
-        X_pointer + (Inputimage_channel * Inputimage_height * Inputimage_width);
+    X_pointer = X_pointer + (input_image_height * input_image_width);
   }
 
   // divide by MINIBATCH
@@ -156,11 +144,10 @@ void Convolution::backward_GPU_gemm() {
 // number of vertical tiles per output map
 // int H_grid = H_out / TILE_WIDTH;
 
-__global__ void convLayer_forward_GPU_naive(float *X, float *W, float *Y, int C,
-                                            int H_in, int W_in, int W_out,
-                                            int K, int M) {
+__global__ void conv_layer_forward_gpu(float *X, float *W, float *Y, int H_in,
+                                       int W_in, int W_out, int K, int M) {
   int H_out = H_in - K + 1;
-  int n, m, h, w, c, p, q;
+  int n, m, h, w, p, q;
   int W_grid = ceilf((float)W_out / TILE_WIDTH);
   if (W_grid == 0)
     W_grid = 1;
@@ -170,40 +157,37 @@ __global__ void convLayer_forward_GPU_naive(float *X, float *W, float *Y, int C,
   w = (blockIdx.z % W_grid) * TILE_WIDTH + threadIdx.x;
   // h and w is not center point, it's upper left corner point of Input image
   float acc = 0;
-  for (c = 0; c < C; c++) { // sum over all input channels
-    for (p = 0; p < K; p++) // loop over KxK filter
-      for (q = 0; q < K; q++)
-        if (h < H_out && w < W_out)
-          acc = acc + X[n * (C * H_in * W_in) + c * (H_in * W_in) +
-                        (h + p) * (W_in) + (w + q)] *
-                          W[m * (C * K * K) + c * (K * K) + p * (K) + q];
+  // loop over KxK filter
+  for (p = 0; p < K; p++) {
+    for (q = 0; q < K; q++)
+      if (h < H_out && w < W_out)
+        acc = acc + X[n * (H_in * W_in) + (h + p) * (W_in) + (w + q)] *
+                        W[m * (K * K) + p * (K) + q];
   }
   if (h < H_out && w < W_out) {
     Y[n * (M * H_out * W_out) + m * (H_out * W_out) + h * (W_out) + w] = acc;
   }
 }
 
-__global__ void unroll_Kernel(int C, int H_in, int W_in, int K, float *X,
+__global__ void unroll_kernel(int H_in, int W_in, int K, float *X,
                               float *X_unroll) {
-  int c, s, h_out, w_out, h_unroll, w_unroll, h_base, p, q;
+  int s, h_out, w_out, h_unroll, w_unroll, h_base, p, q;
   int t = blockIdx.x * 1024 + threadIdx.x;
   int H_out = H_in - K + 1;
   int W_out = W_in - K + 1;
   int W_unroll = H_out * W_out;
 
-  if (t < C * W_unroll) {
-    c = t / W_unroll;                 // if t < 28*28, c = 0  // output channel
+  if (t < W_unroll) {
     s = t % W_unroll;                 // output height * output width
     h_out = s / W_out;                // output height
     w_out = s % W_out;                // output width
     w_unroll = h_out * W_out + w_out; // in conv1, max 28*28(s)
-    h_base = c * K * K;
     for (p = 0; p < K; p++)
       for (q = 0; q < K; q++) {
-        h_unroll = h_base + p * K + q;
-        if (c < C && (h_out + p) < H_in && (w_out + q) < W_in)
+        h_unroll = p * K + q;
+        if ((h_out + p) < H_in && (w_out + q) < W_in)
           X_unroll[h_unroll * (W_unroll) + w_unroll] =
-              X[c * (W_in * H_in) + (h_out + p) * W_in + w_out + q];
+              X[(h_out + p) * W_in + w_out + q];
       }
   }
 }

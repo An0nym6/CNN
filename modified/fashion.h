@@ -170,9 +170,9 @@ public:
 
 class Convolution { // M*C*H*W
 public:
-  void init(int minib, int X_h, int X_w, int X_ch, int W_w_h, int W_ch);
-  void forward_GPU_naive();
-  void backward_GPU_gemm();
+  void init(int minib, int X_h, int X_w, int W_w_h, int W_ch);
+  void forward_gpu();
+  void backward_gpu();
 
   host_vector<float> X_c; // when back, dE_dX
   host_vector<float> W_c;
@@ -198,9 +198,8 @@ public:
   int X_height;
   int Unroll_X_width;
   int Unroll_X_height;
-  int Inputimage_width;
-  int Inputimage_height;
-  int Inputimage_channel;
+  int input_image_width;
+  int input_image_height;
   int minibatch;
   int Outputimage_width;
   int Outputimage_height;
@@ -209,10 +208,9 @@ public:
   int Output_height;
 };
 
-__global__ void convLayer_forward_GPU_naive(float *X, float *W, float *Y, int C,
-                                            int H_in, int W_in, int W_out,
-                                            int K, int M);
-__global__ void unroll_Kernel(int C, int H_in, int W_in, int K, float *X,
+__global__ void conv_layer_forward_gpu(float *X, float *W, float *Y, int H_in,
+                                       int W_in, int W_out, int K, int M);
+__global__ void unroll_kernel(int H_in, int W_in, int K, float *X,
                               float *X_unroll);
 
 class Pool { // M*C*H*W
