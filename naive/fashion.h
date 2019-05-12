@@ -162,9 +162,7 @@ class FullyConnect {
 
 public:
   void init(int X_h, int X_w_W_h, int W_w);
-  void forward(device_vector<float> &input);
   void forward();
-  void forward_gpu_test(device_vector<float> &input, int test_number);
   void backward();
 
   // M*(C*H*W)
@@ -248,12 +246,7 @@ __global__ void unroll_Kernel(int C, int H_in, int W_in, int K, float *X,
 class Pool { // M*C*H*W
 public:
   void init(int minib, int X_h, int X_w, int X_ch, int pool_size);
-  void poolingLayer_forward(int N, float *X, int H_in, int W_in, float *Y,
-                            int M);
-
-  void forward_CPU(host_vector<float> &input);
   void forward_GPU_naive(device_vector<float> &input);
-  void forward_GPU_tiled(device_vector<float> &input);
   void backward_GPU(device_vector<float> &output);
 
   host_vector<float> X_c;
@@ -279,8 +272,6 @@ public:
   int pool_size;
 };
 __global__ void poolingLayer_forward_GPU_naive(float *X, int H_in, int W_in,
-                                               float *Y, int M, int pool_size);
-__global__ void poolingLayer_forward_GPU_tiled(float *X, int H_in, int W_in,
                                                float *Y, int M, int pool_size);
 __global__ void poolingLayer_backward_GPU(float *X, int H_in, int W_in,
                                           float *Y, int M, int pool_size);
