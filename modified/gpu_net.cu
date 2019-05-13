@@ -113,6 +113,7 @@ void GPU_Net::train(host_vector<host_vector<float>> &x_train,
                epoch, minibatch_index, minibatch_index * MINIBATCH / elapsed,
                max_acc * 100, acc * 100, elapsed);
         fflush(stdin);
+        exit(0);
       }
     }
   }
