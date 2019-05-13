@@ -1,10 +1,6 @@
 #include "fashion.h"
 
-/***** Function definitions ***************************/
-
-// result to output
 void forward_relu(device_vector<float> &input, device_vector<float> &output) {
-
   int size_in = input.size();
   float *input_pointer = thrust::raw_pointer_cast(input.data());
   float *output_pointer = thrust::raw_pointer_cast(output.data());
@@ -12,7 +8,6 @@ void forward_relu(device_vector<float> &input, device_vector<float> &output) {
   relu_h<<<block_size, 1024>>>(input_pointer, output_pointer, size_in);
 }
 
-// result to input
 void backward_relu(device_vector<float> &input, device_vector<float> &output) {
   int size_in = input.size();
   float *input_pointer = thrust::raw_pointer_cast(input.data());
@@ -21,26 +16,20 @@ void backward_relu(device_vector<float> &input, device_vector<float> &output) {
   backward_relu_h<<<block_size, 1024>>>(input_pointer, output_pointer, size_in);
 }
 
-// blocknumber -> size_in/1024
 __global__ void relu_h(float *X, float *Y, int size_in) {
   int t = blockIdx.x * blockDim.x + threadIdx.x;
-
   if (t < size_in) {
-    if (X[t] < 0)
-      Y[t] = (float)0;
-    else
+    Y[t] = 0.0;
+    if (X[t] >= 0)
       Y[t] = X[t];
   }
 }
 
-// blocknumber -> size_in/1024
 __global__ void backward_relu_h(float *X, float *Y, int size_in) {
   int t = blockIdx.x * blockDim.x + threadIdx.x;
-
   if (t < size_in) {
-    if (X[t] < 0)
-      X[t] = (float)0;
-    else
+    X[t] = 0.0;
+    if (X[t] >= 0)
       X[t] = Y[t];
   }
 }
