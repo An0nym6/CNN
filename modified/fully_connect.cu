@@ -85,7 +85,7 @@ void FullyConnect::backward() {
   // cout << "FC backward numBlocks_back_dE_dX end" << endl << fflush;
 
   //// fc Bgrad
-  reduceTofirstindex(Output, Output_height, Output_width);
+  reduce_to_first_index(Output, Output_height, Output_width);
 
   //// gradient descent
   // bx*tx = idata_width*idata*height

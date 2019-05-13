@@ -46,67 +46,45 @@ using namespace thrust;
 #define RAW_PIXELS_PER_IMG 784 // 28 x 28, single-channel image
 #define RAW_PIXELS_PER_IMG_PADDING 1024
 
-/***** Function declarations ***************************/
+// Function declarations
+// Input functions
 void read_data(const char *datapath, host_vector<host_vector<float>> &data);
 void read_label(const char *labelPath, host_vector<int> &label);
-void flatten(host_vector<host_vector<float>> &input,
-             host_vector<float> &output);
-// size_in -> entire width of
-// vector(MINIBATCH*Outputimage_channel*Outputimage_height*Outputimage_width)
+// ReLU
+__global__ void relu_h(float *X, float *Y, int size_in);
 void forward_relu(device_vector<float> &input, device_vector<float> &output);
-// size_in -> entire width of
-// vector(MINIBATCH*Outputimage_channel*Outputimage_height*Outputimage_width)
+__global__ void backward_relu_h(float *X, float *Y, int size_in);
 void backward_relu(device_vector<float> &input, device_vector<float> &output);
-void reduceTofirstindex(device_vector<float> &input, int H_in, int W_in);
-void reduceTofirstindex(float *input_pointer, int H_in, int W_in);
-// option 1 -> forward
-// option 2 -> backward
-void relu_h_gpu_test(host_vector<float> &input, device_vector<float> &comp,
-                     int size_in, int test_number, int option);
-// size_in -> entire width of
-// vector(MINIBATCH*Outputimage_channel*Outputimage_height*Outputimage_width)
+// Matrix reduction
+__global__ void reduce_to_first_index_h(float *X, int height, int width);
+void reduce_to_first_index(device_vector<float> &input, int height, int width);
+void reduce_to_first_index(float *input_pointer, int height, int width);
+// Add bias to all values
+__global__ void forward_bias(float *X, float *b, int N, int ch_in, int h_in,
+                             int w_in);
 void forward_bias_per_channel(device_vector<float> &input,
                               device_vector<float> &bias, int N, int ch_in,
                               int h_in, int w_in);
-void backward_bias_per_channel(device_vector<float> &input,
-                               device_vector<float> &bias, int N, int h_in,
-                               int w_total_in, int w_ch,
-                               int w_width_mul_w_height);
-void backward_bias(device_vector<float> &input, device_vector<float> &bias,
-                   int N, int ch_in, int h_in, int w_in);
-void forward_bias_gpu_test(host_vector<float> &input,
-                           device_vector<float> &bias,
-                           device_vector<float> &comp, int N, int ch_in,
-                           int h_in, int w_in, int test_number);
-void transposeMatrix(device_vector<float> &XT, device_vector<float> &X,
-                     int X_height, int X_width);
-void transposeMatrix(float *XT_pointer, float *X_pointer, int input_height,
-                     int input_width);
-void transposeMatrix_gpu_test(host_vector<float> &Output_c,
-                              host_vector<float> &input_c, int height_in,
-                              int width_in, int test_number);
-__global__ void forward_bias(float *X, float *b, int N, int ch_in, int h_in,
-                             int w_in);
-// bx = output_WIDTH, by = output_HEIGH
+// General matrix multiplication
 __global__ void gemm_h(float *Md, float *Nd, float *Pd, int M_height_in,
                        int M_width_N_height_in, int N_width_in, int height_out,
                        int width_out);
 __global__ void gemm_with_bias_h(float *Md, float *Nd, float *Pd, float *B,
                                  int M_height_in, int M_width_N_height_in,
                                  int N_width_in, int height_out, int width_out);
-// bx = input_WIDTH, by = input_HEIGHT
+// Matrix transpose
 __global__ void transposeMatrix_h(float *odata, const float *idata,
                                   int height_in, int width_in);
-// bx*tx = idata_width*idata*height
+void transposeMatrix(device_vector<float> &XT, device_vector<float> &X,
+                     int X_height, int X_width);
+void transposeMatrix(float *XT_pointer, float *X_pointer, int input_height,
+                     int input_width);
+// Backward propagation
 __global__ void grad_descent(float *odata, const float *idata, int size);
-// blocknumber -> size_in/1024
-__global__ void relu_h(float *X, float *Y, int size_in);
-// blocknumber -> size_in/1024
-__global__ void backward_relu_h(float *X, float *Y, int size_in);
-// blocknumber -> Input_width/1024
-__global__ void reduceTofirstindex_h(float *X, int H_in, int W_in);
-__global__ void backward_bias(float *X, float *b, int N, int ch_in, int h_in,
-                              int w_in);
+void backward_bias_per_channel(device_vector<float> &input,
+                               device_vector<float> &bias, int N, int h_in,
+                               int w_total_in, int w_ch,
+                               int w_width_mul_w_height);
 
 // For thrust calculation
 struct square {
@@ -128,32 +106,28 @@ struct plus_h {
   }
 };
 
-/***** CLASS declarations ***************************/
-
+// Classes
+// fully_connect.cu
 class FullyConnect {
-
 public:
   void init(int X_h, int X_w_W_h, int W_w);
   void forward();
   void backward();
-
-  // M*(C*H*W)
-  host_vector<float> X_c; // when back, dE_dX
+  host_vector<float> X_c;
   host_vector<float> W_c;
   host_vector<float> b_c;
   host_vector<float> Wgrad_c;
   host_vector<float> bgrad_c;
   host_vector<float> Output_c;
-  device_vector<float> X; // when back, dE_dX
+  device_vector<float> X;
   device_vector<float> XT;
   device_vector<float> W;
   device_vector<float> WT;
   device_vector<float> b;
   device_vector<float> Wgrad;
   device_vector<float> bgrad;
-  device_vector<float> Output; // when back, dE_dY
+  device_vector<float> Output;
   device_vector<float> OutputT;
-
   int X_width;
   int X_height;
   int XT_width;
@@ -174,7 +148,6 @@ public:
   void init(int minibatch, int in_img_h, int in_img_w, int w_w_h, int w_ch);
   void forward_gpu();
   void backward_gpu();
-
   device_vector<float> x;
   device_vector<float> w;
   device_vector<float> w_t;
@@ -185,7 +158,6 @@ public:
   device_vector<float> bgrad;
   device_vector<float> unroll_x;
   device_vector<float> unroll_x_t;
-
   int w_width_height;
   int w_ch;
   int unroll_x_width;
@@ -204,19 +176,18 @@ __global__ void conv_layer_forward_gpu(float *x, float *w, float *y, int h_in,
 __global__ void unroll_kernel(int h_in, int w_in, int k, float *x,
                               float *x_unroll);
 
-class Pool { // M*C*H*W
+// pool.cu
+class Pool {
 public:
   void init(int minib, int X_h, int X_w, int X_ch, int pool_size);
   void forward_GPU_naive(device_vector<float> &input);
   void backward_GPU(device_vector<float> &output);
-
   host_vector<float> X_c;
   device_vector<float> X;
   host_vector<float> Output_c;
   device_vector<float> Output;
   device_vector<float> b;
   device_vector<float> b_c;
-
   int X_height;
   int X_width;
   int b_height;
@@ -237,12 +208,12 @@ __global__ void poolingLayer_forward_GPU_naive(float *X, int H_in, int W_in,
 __global__ void poolingLayer_backward_GPU(float *X, int H_in, int W_in,
                                           float *Y, int M, int pool_size);
 
-class Softmax { // M*C*H*W
+// softmax.cu
+class Softmax {
 public:
   host_vector<float> delta_c;
   device_vector<float> delta;
   float loss;
-
   void cross_entropy_loss(int N, host_vector<int> label,
                           host_vector<float> &input, int Width_in, float &loss,
                           int minib);
@@ -256,6 +227,8 @@ public:
                 int &correct_num);
 };
 
+// gpu_net.cu
+// Main
 class GPU_Net {
 public:
   GPU_Net();
@@ -264,25 +237,11 @@ public:
                      host_vector<int> &Ytrain);
   virtual void test(host_vector<host_vector<float>> &Xtest,
                     host_vector<int> &Ytest);
-
   Convolution conv1;
   Pool pool1;
   FullyConnect fc1, fc2, fc3, fc4;
   Softmax sm1;
   int correct_num;
 };
-
-#define gpuErrchk(ans)                                                         \
-  { gpuAssert((ans), __FILE__, __LINE__); }
-
-inline void gpuAssert(cudaError_t code, const char *file, int line,
-                      bool abort = true) {
-  if (code != cudaSuccess) {
-    fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file,
-            line);
-    if (abort)
-      exit(code);
-  }
-}
 
 #endif
