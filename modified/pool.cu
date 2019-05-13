@@ -1,19 +1,22 @@
 #include "fashion.h"
 
+// Pooling layer initialization
 void Pool::init(int minib, int Inputimage_h, int Inputimage_w,
                 int Inputimage_ch, int pool_size) {
+  // Define random generator for initializing weights
   std::default_random_engine generator;
   std::normal_distribution<float> distribution(0, 1.0);
 
-  this->Inputimage_height = Inputimage_h;
+  //initial variables
+  this->Inputimage_height = Inputimage_h; // the height and width of input images
   this->Inputimage_width = Inputimage_w;
-  this->Inputimage_channel = Inputimage_ch;
-  this->Outputimage_height = Inputimage_h / pool_size;
+  this->Inputimage_channel = Inputimage_ch; // the number of input channels
+  this->Outputimage_height = Inputimage_h / pool_size; // the height and width of output
   this->Outputimage_width = Inputimage_w / pool_size;
-  this->Outputimage_channel = Inputimage_ch;
-  this->Output_height = minib;
+  this->Outputimage_channel = Inputimage_ch; // the number of output channels
+  this->Output_height = minib; //each example per row
   this->Output_width =
-      Outputimage_channel * Outputimage_height * Outputimage_width;
+      Outputimage_channel * Outputimage_height * Outputimage_width; // the size of one row
   this->minibatch = minib;
   this->X_height = minib;
   this->X_width = Inputimage_channel * Inputimage_height * Inputimage_width;
@@ -21,6 +24,7 @@ void Pool::init(int minib, int Inputimage_h, int Inputimage_w,
   this->b_width = Inputimage_channel;
   this->pool_size = pool_size;
 
+  // Use resize to define vector sizes
   this->X_c.resize(
       minibatch * Inputimage_channel * Inputimage_height * Inputimage_width, 0);
   this->X.resize(
@@ -35,7 +39,10 @@ void Pool::init(int minib, int Inputimage_h, int Inputimage_w,
   this->b_c.resize(Inputimage_channel, 0.1);
 }
 
+//Pooling operation for all examples under one batch
+//Forward propagation
 void Pool::forward_GPU_naive(device_vector<float> &input) {
+  //Define GPU kernel figures
   dim3 threadsPerBlock(TILE_WIDTH, TILE_WIDTH);
   int bz = ceil((float)Outputimage_width / TILE_WIDTH) *
            ceil((float)Outputimage_height / TILE_WIDTH);
@@ -43,6 +50,7 @@ void Pool::forward_GPU_naive(device_vector<float> &input) {
     bz = 1;
   dim3 numBlocks(minibatch, Outputimage_channel, bz);
 
+  // Prepare input and output data for GPU kernel
   float *input_pointer = thrust::raw_pointer_cast(input.data());
   float *Output_pointer = thrust::raw_pointer_cast(Output.data());
   poolingLayer_forward_GPU_naive<<<numBlocks, threadsPerBlock>>>(
@@ -51,7 +59,9 @@ void Pool::forward_GPU_naive(device_vector<float> &input) {
 }
 
 // double for loop version
+//Backward propagation
 void Pool::backward_GPU(device_vector<float> &output) {
+  //Define GPU kernel figures
   dim3 threadsPerBlock(TILE_WIDTH, TILE_WIDTH);
   int bz = ceil((float)Outputimage_width / TILE_WIDTH) *
            ceil((float)Outputimage_height / TILE_WIDTH);
@@ -59,6 +69,7 @@ void Pool::backward_GPU(device_vector<float> &output) {
     bz = 1;
   dim3 numBlocks(minibatch, Outputimage_channel, bz);
 
+  // Prepare input and output data for GPU kernel
   float *input_pointer = thrust::raw_pointer_cast(X.data());
   float *output_pointer = thrust::raw_pointer_cast(output.data());
 

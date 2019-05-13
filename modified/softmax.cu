@@ -8,6 +8,7 @@ void Softmax::softmax(int N, int Width_in, host_vector<int> &label,
   float *output_pointer = thrust::raw_pointer_cast(output.data());
 
   float tmp;
+  // compute the result of each value
   for (int i = 0; i < N; i++)
   {
     sum = 0;
@@ -31,10 +32,12 @@ void Softmax::accuracy(int N, int Width_in,
                        host_vector<int> &label, host_vector<float> &output,
                        int minib, int &correct_num)
 {
+  // Prepare input and output data for softmax accuracy
   int *label_pointer = thrust::raw_pointer_cast(label.data());
   float *output_pointer = thrust::raw_pointer_cast(output.data());
   float estimation_value = -1;
   int estimation_index = -1;
+  // check the accuracy of each sample
   for (int i = 0; i < N; i++)
   {
     for (int j = 0; j < Width_in; j++)
@@ -62,6 +65,7 @@ void Softmax::softmax_backward(int N, host_vector<int> label,
                                host_vector<float> &delta, int Width_in,
                                int minib)
 {
+  // Prepare input and output data for softmax accuracy
   int *label_pointer = thrust::raw_pointer_cast(label.data());
   float *softmax_output_pointer =
       thrust::raw_pointer_cast(softmax_output.data());
@@ -102,6 +106,7 @@ void Softmax::softmax_backward(int N, host_vector<int> label,
   }
 }
 
+//softmax entropy loss criterion function
 void Softmax::cross_entropy_loss(int N, host_vector<int> label,
                                  host_vector<float> &input, int Width_in,
                                  float &loss, int minib)
