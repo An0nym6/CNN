@@ -1,18 +1,13 @@
 #include "fashion.h"
 
-/***** Function definitions ***************************/
-
-// result to output
 void forward_relu(device_vector<float> &input, device_vector<float> &output) {
-
-int size_in = input.size();
-float *input_pointer = thrust::raw_pointer_cast(input.data());
-float *output_pointer = thrust::raw_pointer_cast(output.data());
-int block_size = ceil((double)size_in / 1024);
-relu_h<<<block_size, 1024>>>(input_pointer, output_pointer, size_in);
+  int size_in = input.size();
+  float *input_pointer = thrust::raw_pointer_cast(input.data());
+  float *output_pointer = thrust::raw_pointer_cast(output.data());
+  int block_size = ceil((double)size_in / 1024);
+  relu_h<<<block_size, 1024>>>(input_pointer, output_pointer, size_in);
 }
 
-// result to input
 void backward_relu(device_vector<float> &input, device_vector<float> &output) {
 int size_in = input.size();
 float *input_pointer = thrust::raw_pointer_cast(input.data());
@@ -21,28 +16,22 @@ int block_size = ceil((double)size_in / 1024);
 backward_relu_h<<<block_size, 1024>>>(input_pointer, output_pointer, size_in);
 }
 
-// blocknumber -> size_in/1024
 __global__ void relu_h(float *X, float *Y, int size_in) {
-int t = blockIdx.x * blockDim.x + threadIdx.x;
-
-if (t < size_in) {
-if (X[t] < 0)
-Y[t] = (float)0;
-else
-Y[t] = X[t];
-}
+  int t = blockIdx.x * blockDim.x + threadIdx.x;
+  if (t < size_in) {
+    Y[t] = 0.0;
+    if (X[t] >= 0)
+      Y[t] = X[t];
+  }
 }
 
-// blocknumber -> size_in/1024
 __global__ void backward_relu_h(float *X, float *Y, int size_in) {
-int t = blockIdx.x * blockDim.x + threadIdx.x;
-
-if (t < size_in) {
-if (X[t] < 0)
-X[t] = (float)0;
-else
-X[t] = Y[t];
-}
+  int t = blockIdx.x * blockDim.x + threadIdx.x;
+  if (t < size_in) {
+    X[t] = 0.0;
+    if (X[t] >= 0)
+      X[t] = Y[t];
+  }
 }
 
 // reducing W_in(H_in -> 1)
@@ -341,9 +330,8 @@ int height_in, int width_in) {
 int x = blockIdx.x * TILE_WIDTH + threadIdx.x;
 int y = blockIdx.y * TILE_WIDTH + threadIdx.y;
 
-if (y < height_in && x < width_in)
-odata[(x)*height_in + y] = idata[(y)*width_in + x];
-__syncthreads();
+  if (y < height_in && x < width_in)
+    odata[(x)*height_in + y] = idata[(y)*width_in + x];
 }
 
 __global__ void grad_descent(float *odata, const float *idata, int size) {

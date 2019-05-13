@@ -9,7 +9,7 @@ GPU_Net::GPU_Net() {
   // fc3 Input = 400 Output = 200
   // fc3 Input = 200 Output = 10
 
-  conv1.init(MINIBATCH, 32, 32, 1, 5, 8);
+  conv1.init(MINIBATCH, 32, 32, 5, 8);
   pool1.init(MINIBATCH, 28, 28, 8, 2);
   fc1.init(MINIBATCH, 14 * 14 * 8, 1600);
   fc2.init(MINIBATCH, 1600, 800);
@@ -41,10 +41,10 @@ void GPU_Net::train(host_vector<host_vector<float>> &x_train,
     while (minibatch_index < NUM_TRAIN / MINIBATCH) {
       clock_gettime(CLOCK_REALTIME, &start);
       // Convolution layer forward propagation
-      conv1.X = x_train[minibatch_index];
-      conv1.forward_GPU_naive();
+      conv1.x = x_train[minibatch_index];
+      conv1.forward_gpu();
       // Pooling layer forward propagation
-      pool1.forward_GPU_naive(conv1.Output);
+      pool1.forward_GPU_naive(conv1.output);
       forward_bias_per_channel(
           pool1.Output, pool1.b, MINIBATCH, pool1.Outputimage_channel,
           pool1.Outputimage_height, pool1.Outputimage_width);
@@ -93,8 +93,8 @@ void GPU_Net::train(host_vector<host_vector<float>> &x_train,
           pool1.Outputimage_height * pool1.Outputimage_width);
       pool1.backward_GPU(fc1.X);
       // Convolution layer backward propagation
-      conv1.Output = pool1.X;
-      conv1.backward_GPU_gemm();
+      conv1.output = pool1.X;
+      conv1.backward_gpu();
 
       // Calculate output variables
       clock_gettime(CLOCK_REALTIME, &finish);
@@ -132,10 +132,10 @@ void GPU_Net::test(host_vector<host_vector<float>> &Xtest,
   while (minibatch_index < NUM_TEST / MINIBATCH) {
     clock_gettime(CLOCK_REALTIME, &start);
     // Convolution layer forward propagation
-    conv1.X = Xtest[minibatch_index];
-    conv1.forward_GPU_naive();
+    conv1.x = Xtest[minibatch_index];
+    conv1.forward_gpu();
     // Pooling layer forward propagation
-    pool1.forward_GPU_naive(conv1.Output);
+    pool1.forward_GPU_naive(conv1.output);
     forward_bias_per_channel(pool1.Output, pool1.b, MINIBATCH,
                              pool1.Outputimage_channel,
                              pool1.Outputimage_height, pool1.Outputimage_width);
