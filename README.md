@@ -2,6 +2,11 @@
 
 CUDA-Boosted Convolutional Neural Network
 
+## Quick Start
+
+* Run ```make```;
+* Run ```./fashion```.
+
 ## Contributors
 
 * [Ren Liu](https://github.com/An0nym6)
