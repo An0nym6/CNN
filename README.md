@@ -4,6 +4,7 @@ CUDA-Boosted Convolutional Neural Network
 
 ## Quick Start
 
+* Make sure you have CUDA: ```which nvcc```;
 * Run ```make```;
 * Run ```./fashion```.
 
